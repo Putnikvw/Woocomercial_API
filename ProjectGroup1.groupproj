@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{FA61358D-0556-4847-84A2-7BE25B30A1F3}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="WooCommerceSync.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Test\WooCommerceSyncTests.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="WooCommerceSync">
+        <MSBuild Projects="WooCommerceSync.dproj"/>
+    </Target>
+    <Target Name="WooCommerceSync:Clean">
+        <MSBuild Projects="WooCommerceSync.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WooCommerceSync:Make">
+        <MSBuild Projects="WooCommerceSync.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WooCommerceSyncTests">
+        <MSBuild Projects="Test\WooCommerceSyncTests.dproj"/>
+    </Target>
+    <Target Name="WooCommerceSyncTests:Clean">
+        <MSBuild Projects="Test\WooCommerceSyncTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WooCommerceSyncTests:Make">
+        <MSBuild Projects="Test\WooCommerceSyncTests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="WooCommerceSync;WooCommerceSyncTests"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="WooCommerceSync:Clean;WooCommerceSyncTests:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="WooCommerceSync:Make;WooCommerceSyncTests:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
