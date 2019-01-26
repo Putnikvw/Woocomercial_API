@@ -11,7 +11,7 @@ type
     dbConnection: TMSConnection;
     qProductCategory: TMSQuery;
   private
-    function RetrivePath(AFullPath: string; const ASearchType: string): string;
+    function RetrivePath(AFullPath: Variant; const ASearchType: string): string;
     procedure LoadProdCateg(AData: TFDMemTable);
   public
     { Public declarations }
@@ -82,12 +82,14 @@ begin
 end;
 
 
-function TDMBase.RetrivePath(AFullPath: string; const ASearchType: string): string;
+function TDMBase.RetrivePath(AFullPath: Variant; const ASearchType: string): string;
 var
   TmpStr: string;
   A: TArray<string>;
   I: Integer;
 begin
+  if VarIsNull(AFullPath) then
+	Exit;
   TmpStr := TRegEx.Replace(TRegEx.Replace(AFullPath, '\[/*', ''), '\]/*', '');
   TmpStr := TRegEx.Replace(TRegEx.Replace(TRegEx.Replace(TmpStr, '\{/*', ''), '\}/*', ''), '\"/*', '');
   A := TmpStr.Split([',']);
