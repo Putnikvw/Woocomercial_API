@@ -30,13 +30,12 @@ object dmAPIConnect: TdmAPIConnect
     Top = 48
   end
   object RESTDataAdapter: TRESTResponseDataSetAdapter
-    Dataset = mDataTable
     FieldDefs = <>
     Response = RESTResponse
     Left = 88
     Top = 256
   end
-  object mDataTable: TFDMemTable
+  object GETTable: TFDMemTable
     FetchOptions.AssignedValues = [evMode]
     FetchOptions.Mode = fmAll
     ResourceOptions.AssignedValues = [rvSilentMode]
@@ -44,7 +43,7 @@ object dmAPIConnect: TdmAPIConnect
     UpdateOptions.AssignedValues = [uvCheckRequired, uvAutoCommitUpdates]
     UpdateOptions.CheckRequired = False
     UpdateOptions.AutoCommitUpdates = True
-    Left = 80
-    Top = 320
+    Left = 88
+    Top = 312
   end
 end

@@ -8,7 +8,7 @@ uses
   Data.DB, Datasnap.DBClient, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Param,
   FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf,
   FireDAC.Comp.DataSet, FireDAC.Comp.Client, REST.Types, System.RegularExpressions,
-  System.Variants;
+  System.Variants, MemDS, MSAccess;
 
 type
   TdmAPIConnect = class(TDataModule)
@@ -17,17 +17,27 @@ type
     RESTResponse: TRESTResponse;
     HTTPBasicAuthenticator: THTTPBasicAuthenticator;
     RESTDataAdapter: TRESTResponseDataSetAdapter;
-    mDataTable: TFDMemTable;
+    GETTable: TFDMemTable;
   private
+    FServer: string;
+    FLogin: string;
+    FPass: string;
+    FDB: string;
     procedure ExecuteAPI(ACategory: string);
-    procedure ClearTable;
+    procedure ClearTable(ADataSource: TFDMemTable);
     procedure RetriveData;
-    function RetrivePath(AFullPath: string): string;
+    procedure CheckConnect;
     { Private declarations }
   public
     procedure GETAPIData(AType: string);
     procedure POSTAPIData(AType: string);
     procedure APIConnection(AUserName, APassValue, AUrl: string);
+    procedure DBConnection;
+    procedure CompareProdCateg;
+    property Server: string read FServer write FServer;
+    property Login: string read FLogin write FLogin;
+    property Password: string read FPass write FPass;
+    property DataBase: string read FDB write FDB;
   end;
 
 var
@@ -35,6 +45,7 @@ var
 
 implementation
 
+  uses uDMBase;
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 {$R *.dfm}
@@ -53,18 +64,36 @@ begin
   end;
 end;
 
-procedure TdmAPIConnect.ClearTable;
+procedure TdmAPIConnect.CheckConnect;
 begin
-  if mDataTable.RecordCount > 0 then
-    mDataTable.EmptyDataSet;
+  if not DMBase.dbConnection.Connected then
+    DBConnection;
+end;
+
+procedure TdmAPIConnect.ClearTable(ADataSource: TFDMemTable);
+begin
+  if ADataSource.RecordCount > 0 then
+    ADataSource.EmptyDataSet;
+end;
+
+procedure TdmAPIConnect.CompareProdCateg;
+begin
+  CheckConnect;
+  DMBase.DownloadProdCateg(GETTable);
+  DMBase.CompareCategories;
+end;
+
+procedure TdmAPIConnect.DBConnection;
+begin
+  DMBase.MainConnection(Server, Login, Password, DataBase);
 end;
 
 procedure TdmAPIConnect.RetriveData;
 var
   I: Integer;
 begin
-  mDataTable.First;
-  with mDataTable do
+  GETTable.First;
+  with GETTable do
   begin
     while not Eof do
     begin
@@ -72,8 +101,7 @@ begin
       begin
         Fields.Fields[I].FullName;
         if Fields.Fields[I].FullName = 'image' then
-          if not varisnull(Fields.Fields[I].Value) then
-            RetrivePath(Fields.Fields[I].Value);
+          if not VarIsNull(Fields.Fields[I].Value) then
         Fields.Fields[I].Value;
       end;
       Next;
@@ -84,9 +112,11 @@ end;
 procedure TdmAPIConnect.GETAPIData(AType: string);
 begin
   RESTRequest.Method := TRESTRequestMethod.rmGET;
-  ClearTable;
+  ClearTable(GETTable);
+  RESTDataAdapter.Dataset := GETTable;
   ExecuteAPI(AType);
-  RetriveData;
+  CheckConnect;
+  DMBase.DownloadProdCateg(GETTable);
 end;
 
 procedure TdmAPIConnect.ExecuteAPI(ACategory: string);
@@ -102,22 +132,10 @@ end;
 
 procedure TdmAPIConnect.POSTAPIData(AType: string);
 begin
+  CheckConnect;
   RESTRequest.Method := TRESTRequestMethod.rmPOST;
+  RESTRequest.AddBody(DMBase.ReturnPOSTJSONString, ctAPPLICATION_JSON);
   ExecuteAPI(AType);
-end;
-
-function TdmAPIConnect.RetrivePath(AFullPath: string): string;
-var
-  TmpStr: string;
-  A: TArray<string>;
-  I: Integer;
-begin
-  TmpStr := TRegEx.Replace(TRegEx.Replace(AFullPath, '\[/*', ''), '\]/*', '');
-  TmpStr := TRegEx.Replace(TRegEx.Replace(TRegEx.Replace(TmpStr, '\{/*', ''), '\}/*', ''), '\"/*', '');
-  A := TmpStr.Split([',']);
-  for I := 0 to Length(A) - 1 do
-    if A[I].contains('src') then
-      Result := StringReplace(StringReplace(A[I], 'src:', '', [rfReplaceAll]), 'href:', '', [rfReplaceAll]);
 end;
 
 end.

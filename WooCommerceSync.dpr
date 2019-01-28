@@ -11,6 +11,7 @@ uses
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
+  ReportMemoryLeaksOnShutdown :=  True;
   Application.CreateForm(TMain, Main);
   Application.CreateForm(TdmAPIConnect, dmAPIConnect);
   Application.CreateForm(TDMBase, DMBase);

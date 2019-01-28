@@ -7,7 +7,7 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, AdvGDIPicture,
   AdvAppStyler, AdvPanel, Vcl.ExtCtrls, AdvOfficePager, AdvOfficePagerStylers,
   Vcl.StdCtrls, RTFLabel, Data.DB, DBAccess, MSAccess, IPPeerClient,
-  Data.Bind.Components, Data.Bind.ObjectScope;
+  Data.Bind.Components, Data.Bind.ObjectScope, System.UITypes;
 
 type
   TMain = class(TForm)
@@ -57,6 +57,9 @@ type
     btnConnection: TButton;
     procedure btnConnectionClick(Sender: TObject);
     procedure btnProdCategoriesClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure btnCompareCategoriesClick(Sender: TObject);
+    procedure btnUploadProdCategoriesClick(Sender: TObject);
   private
     procedure APIConnect;
     { Private declarations }
@@ -70,7 +73,7 @@ var
 implementation
 
 uses
-  dAPIConnection, uDMBase;
+  dAPIConnection;
 
 resourcestring
   rsProdCategory = 'products/categories';
@@ -80,9 +83,14 @@ resourcestring
 
 {$R *.dfm}
 
+procedure TMain.btnCompareCategoriesClick(Sender: TObject);
+begin
+  dmAPIConnect.CompareProdCateg;
+end;
+
 procedure TMain.btnConnectionClick(Sender: TObject);
 begin
-  DMBase.MainConnection(eServerName.Text, eUserName.Text, ePassword.Text, eDataBase.Text);
+  dmAPIConnect.DBConnection;
 end;
 
 procedure TMain.btnProdCategoriesClick(Sender: TObject);
@@ -96,6 +104,29 @@ begin
     dmAPIConnect.GETAPIData(rsOrders);
   if Sender = btnCustomers then
     dmAPIConnect.GETAPIData(rsCustomers);
+end;
+
+procedure TMain.btnUploadProdCategoriesClick(Sender: TObject);
+var
+  WString: string;
+begin
+  WString := 'Before update categories on Web-site you have to download categories and compare them. Did you do it?';
+  if MessageDlg(WString, mtWarning, mbYesNoCancel, 0) = mrYes then
+  begin
+    APIConnect;
+    dmAPIConnect.POSTAPIData(rsProdCategory);
+  end;
+end;
+
+procedure TMain.FormShow(Sender: TObject);
+begin
+  with dmAPIConnect do
+  begin
+    Server := eServerName.Text;
+    Login := eUserName.Text;
+    Password := ePassword.Text;
+    DataBase := eDataBase.Text;
+  end;
 end;
 
 procedure TMain.APIConnect;

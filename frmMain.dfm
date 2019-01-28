@@ -11,6 +11,7 @@ object Main: TMain
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object AdvOfficePager1: TAdvOfficePager
@@ -715,6 +716,7 @@ object Main: TMain
         Height = 37
         Caption = 'Compare categories'
         TabOrder = 1
+        OnClick = btnCompareCategoriesClick
       end
       object btnUploadProdCategories: TButton
         Left = 335
@@ -723,6 +725,7 @@ object Main: TMain
         Height = 37
         Caption = 'Upload product categories'
         TabOrder = 2
+        OnClick = btnUploadProdCategoriesClick
       end
     end
     object AdvOfficePager12: TAdvOfficePage
