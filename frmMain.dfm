@@ -26,7 +26,7 @@ object Main: TMain
     Margins.Bottom = 10
     AdvOfficePagerStyler = AdvOfficePagerOfficeStyler1
     Align = alClient
-    ActivePage = AdvOfficePage2
+    ActivePage = AdvOfficePage1
     ButtonSettings.CloseButtonPicture.Data = {
       424DA20400000000000036040000280000000900000009000000010008000000
       00006C000000C30E0000C30E00000001000000010000427B8400DEEFEF00FFFF

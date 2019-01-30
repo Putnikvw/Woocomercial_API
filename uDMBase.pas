@@ -14,8 +14,10 @@ type
     qProductGroup: TMSQuery;
   private
     FProdCategID: Integer;
-    function RetrivePath(AFullPath: Variant; const ASearchType: string): string;
+    function RetriveString(AFullPath: Variant; const ASearchType: string): string;
     procedure LoadProdCateg(AData: TFDMemTable);
+    procedure LoadProduct(AData: TFDMemTable);
+    procedure LoadOrders(AData: TFDMemTable);
     procedure CompareProductCategories;
     procedure RefreshSQL;
     procedure WriteProdGrouptoWProdCategories;
@@ -25,7 +27,7 @@ type
   public
     { Public declarations }
     procedure MainConnection(AServer, ALogin, APass, ADB: string);
-    procedure DownloadProdCateg(AData: TFDMemTable);
+    procedure DownloadData(AData: TFDMemTable; AType: string);
     procedure CompareCategories;
     function ReturnPOSTJSONString: string;
   end;
@@ -65,9 +67,16 @@ begin
   WriteProdGrouptoWProdCategories;
 end;
 
-procedure TDMBase.DownloadProdCateg(AData: TFDMemTable);
+procedure TDMBase.DownloadData(AData: TFDMemTable; AType: string);
 begin
-  LoadProdCateg(AData);
+  if AType = 'products/categories' then
+    LoadProdCateg(AData);
+  if AType = 'products' then
+    LoadProduct(AData);
+  if AType = 'orders' then
+    LoadOrders(AData);
+//  if AType = 'customers' then
+
 end;
 
 procedure TDMBase.GetID;
@@ -89,7 +98,7 @@ function TDMBase.JSonArray: TJSONObject;
 var
   InnerObject, InnerFields: TJSONObject;
 begin
-  InnerObject := TJSONObject.Create;      
+  InnerObject := TJSONObject.Create;
   RefreshSQL;
   qProductCategory.First;
   while not qProductCategory.Eof do
@@ -110,10 +119,63 @@ begin
       InnerFields.AddPair('collection', FieldByName('link_collection').AsString);
       InnerObject.AddPair('_links', InnerFields);
       Next;
-    end;      
+    end;
   end;
   InnerObject := TJSONObject.ParseJSONValue(InnerObject.ToJSON) as TJSONObject;
   Result := InnerObject;
+end;
+
+procedure TDMBase.LoadOrders(AData: TFDMemTable);
+  function GetCustomerGuid(A)
+  function ClearString(AString: string): string;
+  begin
+    Result := StringReplace(StringReplace(AString, '<p>', '', [rfReplaceAll]), '</p>', '', [rfReplaceAll]);   
+  end;
+
+var
+  qOrder, qWOrders: TMSQuery;
+begin
+  qOrder := TMSQuery.Create(nil);
+  try
+    qWOrders := TMSQuery.Create(nil);
+    try      
+      qOrder.SQL.Text := 'SELECT * from Orders';
+      qWOrders.SQL.Text := 'SELECT * from WooCommerceOrder';
+      qOrder.Connection := dbConnection;
+      qWOrders.Connection := dbConnection;
+      qOrder.Open;
+      qWOrders.Open;
+      AData.First;
+      while not AData.Eof do
+      begin
+        if qOrder.Locate('ProductName', AData.FieldByName('name').AsString, []) then
+          qOrder.Edit
+        else
+          qOrder.Append;
+        qOrder.FieldByName('ProductNumber').AsString := AData.FieldByName('id').AsString;
+        qOrder.FieldByName('ProductID').AsInteger := AData.FieldByName('id').AsInteger;
+        qOrder.FieldByName('ProductName').AsString := AData.FieldByName('name').AsString;
+        qOrder.FieldByName('ProductDescription').AsString := DeleteTags(AData.FieldByName('description').AsString);
+        qOrder.FieldByName('Price').AsFloat := AData.FieldByName('price').AsFloat;
+        qOrder.FieldByName('short_description').AsString := DeleteTags(AData.FieldByName('short_description').AsString);
+        qOrder.FieldByName('CostPrice').AsFloat := AData.FieldByName('regular_price').AsFloat;
+        qOrder.FieldByName('visible_webshop').AsBoolean := False;
+        qOrder.Post;
+        if not qWOrders.Locate('WooCommerceProductID', AData.FieldByName('id').AsInteger, []) then
+        begin
+          qWOrders.Append;
+          qWOrders.FieldByName('WooCommerceProductID').AsInteger := AData.FieldByName('id').AsInteger;
+          qWOrders.Post;
+        end;        
+        AData.Next;
+      end;
+    finally
+      qWOrders.Free;
+    end;
+  finally
+    qOrder.Free;
+  end;
+
 end;
 
 procedure TDMBase.LoadProdCateg(AData: TFDMemTable);
@@ -135,14 +197,65 @@ begin
       FieldByName('parent').AsInteger := AData.FieldByName('parent').AsInteger;
       FieldByName('description').AsString := AData.FieldByName('description').AsString;
       FieldByName('display').AsString := AData.FieldByName('display').AsString;
-      FieldByName('image').AsString := RetrivePath(AData.FieldByName('image').Value, 'src');
+      FieldByName('image').AsString := RetriveString(AData.FieldByName('image').Value, 'src');
       FieldByName('menu_order').AsInteger := AData.FieldByName('menu_order').AsInteger;
       FieldByName('count').AsInteger := AData.FieldByName('count').AsInteger;
-      FieldByName('link_self').AsString := RetrivePath(AData.FieldByName('_links').Value, 'self');
-      FieldByName('link_collection').AsString := RetrivePath(AData.FieldByName('_links').Value, 'collection');
+      FieldByName('link_self').AsString := RetriveString(AData.FieldByName('_links').Value, 'self');
+      FieldByName('link_collection').AsString := RetriveString(AData.FieldByName('_links').Value, 'collection');
       Post;
     end;
     AData.Next;
+  end;
+end;
+
+procedure TDMBase.LoadProduct(AData: TFDMemTable);
+  function DeleteTags(AString: string): string;
+  begin
+    Result := StringReplace(StringReplace(AString, '<p>', '', [rfReplaceAll]), '</p>', '', [rfReplaceAll]);   
+  end;
+
+var
+  qProduct, qWProduct: TMSQuery;
+begin
+  qProduct := TMSQuery.Create(nil);
+  try
+    qWProduct := TMSQuery.Create(nil);
+    try      
+      qProduct.SQL.Text := 'SELECT * from Product';
+      qWProduct.SQL.Text := 'SELECT * from WooCommerceProduct';
+      qProduct.Connection := dbConnection;
+      qWProduct.Connection := dbConnection;
+      qProduct.Open;
+      qWProduct.Open;
+      AData.First;
+      while not AData.Eof do
+      begin
+        if qProduct.Locate('ProductName', AData.FieldByName('name').AsString, []) then
+          qProduct.Edit
+        else
+          qProduct.Append;
+        qProduct.FieldByName('ProductNumber').AsString := AData.FieldByName('id').AsString;
+        qProduct.FieldByName('ProductID').AsInteger := AData.FieldByName('id').AsInteger;
+        qProduct.FieldByName('ProductName').AsString := AData.FieldByName('name').AsString;
+        qProduct.FieldByName('ProductDescription').AsString := DeleteTags(AData.FieldByName('description').AsString);
+        qProduct.FieldByName('Price').AsFloat := AData.FieldByName('price').AsFloat;
+        qProduct.FieldByName('short_description').AsString := DeleteTags(AData.FieldByName('short_description').AsString);
+        qProduct.FieldByName('CostPrice').AsFloat := AData.FieldByName('regular_price').AsFloat;
+        qProduct.FieldByName('visible_webshop').AsBoolean := False;
+        qProduct.Post;
+        if not qWProduct.Locate('WooCommerceProductID', AData.FieldByName('id').AsInteger, []) then
+        begin
+          qWProduct.Append;
+          qWProduct.FieldByName('WooCommerceProductID').AsInteger := AData.FieldByName('id').AsInteger;
+          qWProduct.Post;
+        end;        
+        AData.Next;
+      end;
+    finally
+      QWProduct.Free;
+    end;
+  finally
+    qProduct.Free;
   end;
 end;
 
@@ -160,7 +273,7 @@ begin
   end;
 end;
 
-function TDMBase.RetrivePath(AFullPath: Variant; const ASearchType: string): string;
+function TDMBase.RetriveString(AFullPath: Variant; const ASearchType: string): string;
 var
   TmpStr: string;
   A: TArray<string>;

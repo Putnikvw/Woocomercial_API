@@ -79,7 +79,7 @@ end;
 procedure TdmAPIConnect.CompareProdCateg;
 begin
   CheckConnect;
-  DMBase.DownloadProdCateg(GETTable);
+  DMBase.DownloadData(GETTable, 'products/categories');
   DMBase.CompareCategories;
 end;
 
@@ -116,7 +116,7 @@ begin
   RESTDataAdapter.Dataset := GETTable;
   ExecuteAPI(AType);
   CheckConnect;
-  DMBase.DownloadProdCateg(GETTable);
+  DMBase.DownloadData(GETTable, AType);
 end;
 
 procedure TdmAPIConnect.ExecuteAPI(ACategory: string);
